@@ -1,6 +1,7 @@
 import React from 'react';
 import { HistoryEvent } from '../types';
 import { CheckCircle2, Timer, History, Trash2 } from 'lucide-react';
+import { formatDate } from '../utils/formatDate';
 
 export function HistoryLog({ history, onClear }: { history: HistoryEvent[], onClear: () => void }) {
   if (history.length === 0) {
@@ -50,9 +51,7 @@ export function HistoryLog({ history, onClear }: { history: HistoryEvent[], onCl
                   {event.type === 'limit_reached' ? <span className="text-amber-600 dark:text-amber-400/80">reached limit</span> : <span className="text-emerald-600 dark:text-emerald-400/80">available again</span>}
                 </p>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  {new Date(event.timestamp).toLocaleString(undefined, {
-                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-                  })}
+                  {formatDate(event.timestamp)}
                 </p>
               </div>
             </div>

@@ -10,29 +10,31 @@ interface SetResetModalProps {
 }
 
 export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetResetModalProps) {
-  const [dateTime, setDateTime] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
 
   // Set default to existing date or 7 days from now when opened
   useEffect(() => {
     if (isOpen && account && model) {
       const existingDate = model === 'gemini' ? account.geminiResetDate : account.claudeResetDate;
+      let d;
       if (existingDate && new Date(existingDate).getTime() > Date.now()) {
-        const d = new Date(existingDate);
-        setDateTime(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+        d = new Date(existingDate);
       } else {
-        const d = new Date();
+        d = new Date();
         d.setDate(d.getDate() + 7);
-        // Format for datetime-local: YYYY-MM-DDThh:mm
-        setDateTime(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
       }
+      const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      setDate(localISO.slice(0, 10));
+      setTime(localISO.slice(11, 16));
     }
   }, [isOpen, account, model]);
 
   if (!isOpen || !account || !model) return null;
 
   const handleSave = () => {
-    if (!dateTime) return;
-    const targetDate = new Date(dateTime);
+    if (!date || !time) return;
+    const targetDate = new Date(`${date}T${time}`);
     onSave(targetDate.toISOString());
   };
 
@@ -40,7 +42,9 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
     const d = new Date();
     d.setDate(d.getDate() + days);
     d.setHours(d.getHours() + hours);
-    setDateTime(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+    const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setDate(localISO.slice(0, 10));
+    setTime(localISO.slice(11, 16));
   };
 
   return (
@@ -53,12 +57,20 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">Exact Date & Time</label>
-          <input 
-            type="datetime-local" 
-            value={dateTime}
-            onChange={(e) => setDateTime(e.target.value)}
-            className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
-          />
+          <div className="grid grid-cols-2 gap-4">
+            <input 
+              type="date" 
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
+            />
+            <input 
+              type="time" 
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
+            />
+          </div>
           <div className="flex flex-wrap gap-2 mt-4">
             <button onClick={() => setPreset(7, 0)} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 rounded-md transition-colors">1 Week</button>
             <button onClick={() => setPreset(1, 0)} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 rounded-md transition-colors">1 Day</button>
@@ -76,7 +88,7 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
           </button>
           <button 
             onClick={handleSave}
-            disabled={!dateTime}
+            disabled={!date || !time}
             className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
           >
             Set Timer

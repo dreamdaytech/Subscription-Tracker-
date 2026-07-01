@@ -3,6 +3,7 @@ import { Wifi, Plus, Trash2, Clock, CalendarDays, Edit2 } from 'lucide-react';
 import { WifiSubscription, WifiDuration } from '../types';
 import { useFirestoreData } from '../hooks/useFirestoreData';
 import { auth } from '../firebase';
+import { formatDate } from '../utils/formatDate';
 
 export function WifiTracker() {
   const {
@@ -17,6 +18,9 @@ export function WifiTracker() {
   const [newName, setNewName] = useState('');
   const [newDuration, setNewDuration] = useState<WifiDuration>(1);
   const [newStartDate, setNewStartDate] = useState<string>('');
+  const [newStartTime, setNewStartTime] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [, setTick] = useState(0);
 
   React.useEffect(() => {
@@ -26,32 +30,38 @@ export function WifiTracker() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim() || isSubmitting) return;
 
-    const startDate = newStartDate ? new Date(newStartDate) : new Date();
-    const endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000).toISOString();
+    setIsSubmitting(true);
+    try {
+      const startDate = (newStartDate && newStartTime) ? new Date(`${newStartDate}T${newStartTime}`) : new Date();
+      const endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000).toISOString();
 
-    if (editingSub) {
-      await updateSubscription(editingSub.id, {
-        name: newName.trim(),
-        durationDays: newDuration,
-        startDate: startDate.toISOString(),
-        endDate
-      });
-      setEditingSub(null);
-    } else {
-      await addSubscription({
-        name: newName.trim(),
-        durationDays: newDuration,
-        startDate: startDate.toISOString(),
-        endDate
-      } as any);
+      if (editingSub) {
+        await updateSubscription(editingSub.id, {
+          name: newName.trim(),
+          durationDays: newDuration,
+          startDate: startDate.toISOString(),
+          endDate
+        });
+        setEditingSub(null);
+      } else {
+        await addSubscription({
+          name: newName.trim(),
+          durationDays: newDuration,
+          startDate: startDate.toISOString(),
+          endDate
+        } as any);
+      }
+      
+      setIsAddOpen(false);
+      setNewName('');
+      setNewDuration(1);
+      setNewStartDate('');
+      setNewStartTime('');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsAddOpen(false);
-    setNewName('');
-    setNewDuration(1);
-    setNewStartDate('');
   };
 
   const handleEdit = (sub: WifiSubscription) => {
@@ -59,10 +69,11 @@ export function WifiTracker() {
     setNewName(sub.name);
     setNewDuration(sub.durationDays);
     const d = new Date(sub.startDate);
-    // Format to YYYY-MM-DDTHH:mm
+    // Format to YYYY-MM-DD and HH:mm
     const tzOffset = d.getTimezoneOffset() * 60000; // offset in milliseconds
     const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
-    setNewStartDate(localISOTime);
+    setNewStartDate(localISOTime.slice(0, 10));
+    setNewStartTime(localISOTime.slice(11, 16));
     setIsAddOpen(true);
   };
 
@@ -70,7 +81,8 @@ export function WifiTracker() {
     const d = new Date();
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
-    setNewStartDate(localISOTime);
+    setNewStartDate(localISOTime.slice(0, 10));
+    setNewStartTime(localISOTime.slice(11, 16));
     setIsAddOpen(true);
   };
 
@@ -80,10 +92,12 @@ export function WifiTracker() {
     setNewName('');
     setNewDuration(1);
     setNewStartDate('');
+    setNewStartTime('');
   };
 
-  const handleDelete = (id: string) => {
+  const confirmDelete = (id: string) => {
     removeSubscription(id);
+    setDeleteConfirmId(null);
   };
 
   const getStatus = (endDate: string) => {
@@ -142,7 +156,7 @@ export function WifiTracker() {
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(sub.id)}
+                      onClick={() => setDeleteConfirmId(sub.id)}
                       className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
                       title="Delete Subscription"
                     >
@@ -168,11 +182,11 @@ export function WifiTracker() {
                 <div className="bg-zinc-50 dark:bg-zinc-950 rounded-lg p-3 border border-zinc-100 dark:border-zinc-800/80 space-y-2">
                   <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                     <CalendarDays className="w-4 h-4 text-zinc-400" />
-                    <span>Started: {new Date(sub.startDate).toLocaleDateString()} {new Date(sub.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>Started: {formatDate(sub.startDate)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
                     <CalendarDays className="w-4 h-4 text-zinc-400" />
-                    <span>Renews: {endDate.toLocaleDateString()} {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>Renews: {formatDate(endDate)}</span>
                   </div>
                 </div>
               </div>
@@ -208,13 +222,22 @@ export function WifiTracker() {
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                     Start Date & Time
                   </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={newStartDate}
-                    onChange={(e) => setNewStartDate(e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="date"
+                      required
+                      value={newStartDate}
+                      onChange={(e) => setNewStartDate(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                    />
+                    <input
+                      type="time"
+                      required
+                      value={newStartTime}
+                      onChange={(e) => setNewStartTime(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -250,12 +273,40 @@ export function WifiTracker() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingSub ? 'Save Changes' : 'Start Tracking'}
+                  {isSubmitting ? 'Saving...' : (editingSub ? 'Save Changes' : 'Start Tracking')}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+              Delete Subscription?
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              Are you sure you want to delete this subscription? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmDelete(deleteConfirmId)}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg transition-colors shadow-lg shadow-red-500/20"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

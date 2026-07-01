@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle2, Timer, XCircle } from 'lucide-react';
 import { isAvailable, getTimeRemaining } from '../utils/time';
+import { formatDate } from '../utils/formatDate';
 
 interface StatusBadgeProps {
   resetDate: string | null;
@@ -37,7 +38,7 @@ export function StatusBadge({ resetDate, startDate, onClick, onClear }: StatusBa
         
         {resetDate && (
           <span className="truncate text-[10px] text-emerald-600 dark:text-emerald-500/80 w-full text-left font-normal mt-0.5">
-            Since {new Date(resetDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            Since {formatDate(resetDate)}
           </span>
         )}
         
@@ -69,7 +70,7 @@ export function StatusBadge({ resetDate, startDate, onClick, onClear }: StatusBa
 
         {resetDate && (
           <span className="truncate text-[10px] text-amber-600 dark:text-amber-500/80 w-full text-left font-normal mt-0.5">
-            {new Date(resetDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+            {formatDate(resetDate)}
           </span>
         )}
         

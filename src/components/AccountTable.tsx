@@ -51,8 +51,8 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
       {/* Desktop Header */}
       <div className="hidden md:grid grid-cols-[1fr_200px_200px_60px] gap-4 border-b border-zinc-200 dark:border-zinc-800 text-xs uppercase tracking-wider text-zinc-500 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-4 font-medium rounded-t-xl">
         <div>Google Account</div>
-        <div>Gemini</div>
         <div>Claude</div>
+        <div>Gemini</div>
         <div></div>
       </div>
 
@@ -94,18 +94,6 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
 
               <div className="grid grid-cols-2 gap-4 md:contents">
                 <div className="flex flex-col gap-1.5 md:block">
-                  <span className="text-xs text-zinc-500 uppercase tracking-wider md:hidden">Gemini</span>
-                  <StatusBadge 
-                    resetDate={account.geminiResetDate} 
-                    startDate={account.geminiStartDate}
-                    onClick={() => onSetLimit(account, 'gemini')}
-                    onClear={(e) => {
-                      e.stopPropagation();
-                      onClearLimit(account.id, 'gemini');
-                    }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5 md:block">
                   <span className="text-xs text-zinc-500 uppercase tracking-wider md:hidden">Claude</span>
                   <StatusBadge 
                     resetDate={account.claudeResetDate} 
@@ -114,6 +102,18 @@ export function AccountTable({ accounts, sortOption, onSetLimit, onClearLimit, o
                     onClear={(e) => {
                       e.stopPropagation();
                       onClearLimit(account.id, 'claude');
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 md:block">
+                  <span className="text-xs text-zinc-500 uppercase tracking-wider md:hidden">Gemini</span>
+                  <StatusBadge 
+                    resetDate={account.geminiResetDate} 
+                    startDate={account.geminiStartDate}
+                    onClick={() => onSetLimit(account, 'gemini')}
+                    onClear={(e) => {
+                      e.stopPropagation();
+                      onClearLimit(account.id, 'gemini');
                     }}
                   />
                 </div>

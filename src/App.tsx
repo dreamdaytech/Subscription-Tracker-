@@ -382,12 +382,12 @@ export default function App() {
                     <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{accounts.length}</div>
                   </div>
                   <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 rounded-lg p-2 sm:p-3 flex-1">
-                    <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mb-1">Gemini Available</div>
-                    <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{availableGemini}</div>
-                  </div>
-                  <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 rounded-lg p-2 sm:p-3 flex-1">
                     <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mb-1">Claude Available</div>
                     <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{availableClaude}</div>
+                  </div>
+                  <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700/50 rounded-lg p-2 sm:p-3 flex-1">
+                    <div className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 mb-1">Gemini Available</div>
+                    <div className="text-xl sm:text-2xl font-bold text-zinc-800 dark:text-zinc-200">{availableGemini}</div>
                   </div>
                 </div>
               </div>
