@@ -1,6 +1,6 @@
 {
-  "name": "AI Model Quota Tracker",
-  "description": "Track Gemini and Claude weekly usage limits across multiple Google accounts.",
+  "name": "Subscription Tracker",
+  "description": "Track wifi subscriptions and AI model quotas across multiple accounts with cross-device sync.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
