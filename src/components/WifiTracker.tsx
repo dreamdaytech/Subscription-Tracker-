@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 import { Wifi, Plus, Trash2, Clock, CalendarDays, Edit2 } from 'lucide-react';
 import { WifiSubscription, WifiDuration } from '../types';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useFirestoreData } from '../hooks/useFirestoreData';
+import { auth } from '../firebase';
 
 export function WifiTracker() {
-  const [subscriptions, setSubscriptions] = useLocalStorage<WifiSubscription[]>('wifi-subscriptions', []);
+  const {
+    data: subscriptions,
+    add: addSubscription,
+    update: updateSubscription,
+    remove: removeSubscription
+  } = useFirestoreData<WifiSubscription>(auth.currentUser, 'wifiSubscriptions');
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<WifiSubscription | null>(null);
   const [newName, setNewName] = useState('');
@@ -17,30 +24,28 @@ export function WifiTracker() {
     return () => clearInterval(timer);
   }, []);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
     const startDate = newStartDate ? new Date(newStartDate) : new Date();
+    const endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000).toISOString();
 
     if (editingSub) {
-      const updatedSub = { ...editingSub, name: newName.trim(), durationDays: newDuration, startDate: startDate.toISOString() };
-      updatedSub.endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000).toISOString();
-      
-      setSubscriptions(subscriptions.map(s => s.id === editingSub.id ? updatedSub : s));
-      setEditingSub(null);
-    } else {
-      const endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000);
-
-      const newSub: WifiSubscription = {
-        id: crypto.randomUUID(),
+      await updateSubscription(editingSub.id, {
         name: newName.trim(),
         durationDays: newDuration,
         startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-      };
-
-      setSubscriptions([...subscriptions, newSub]);
+        endDate
+      });
+      setEditingSub(null);
+    } else {
+      await addSubscription({
+        name: newName.trim(),
+        durationDays: newDuration,
+        startDate: startDate.toISOString(),
+        endDate
+      } as any);
     }
     
     setIsAddOpen(false);
@@ -78,7 +83,7 @@ export function WifiTracker() {
   };
 
   const handleDelete = (id: string) => {
-    setSubscriptions(subscriptions.filter(s => s.id !== id));
+    removeSubscription(id);
   };
 
   const getStatus = (endDate: string) => {

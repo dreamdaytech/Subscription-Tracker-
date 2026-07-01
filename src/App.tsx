@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Bell, BellOff, Settings2, Sparkles, X, Sun, Moon } from 'lucide-react';
+import { Plus, Bell, BellOff, Settings2, Sparkles, X, Sun, Moon, LogOut } from 'lucide-react';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { Account, ModelType, SortOption, HistoryEvent } from './types';
 import { AccountTable } from './components/AccountTable';
@@ -9,10 +9,36 @@ import { AddAccountModal } from './components/AddAccountModal';
 import { SetResetModal } from './components/SetResetModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { isAvailable } from './utils/time';
+import { Login } from './components/Login';
+import { auth } from './firebase';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { useFirestoreData } from './hooks/useFirestoreData';
 
 export default function App() {
-  const [accounts, setAccounts] = useLocalStorage<Account[]>('ai-accounts', []);
-  const [history, setHistory] = useLocalStorage<HistoryEvent[]>('ai-history', []);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const {
+    data: accounts,
+    add: addAccountRef,
+    update: updateAccount,
+    remove: removeAccount,
+  } = useFirestoreData<Account>(user, 'accounts');
+
+  const {
+    data: history,
+    add: addHistoryRef,
+    clear: clearHistory,
+  } = useFirestoreData<HistoryEvent>(user, 'history');
+
   const [sortOption, setSortOption] = useState<SortOption>('next-any');
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('ai-theme', 'dark');
   const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'wifi'>('dashboard');
@@ -73,69 +99,61 @@ export default function App() {
   }, [showToast]);
 
   const addHistoryEvent = useCallback((email: string, model: ModelType, type: 'limit_reached' | 'available_again') => {
-    setHistory(prev => {
-      const newEvent: HistoryEvent = {
-        id: crypto.randomUUID(),
-        email,
-        model,
-        type,
-        timestamp: new Date().toISOString()
-      };
-      return [newEvent, ...prev].slice(0, 100);
-    });
-  }, [setHistory]);
+    if (!user) return;
+    addHistoryRef({
+      email,
+      model,
+      type,
+      timestamp: new Date().toISOString()
+    } as any);
+  }, [user, addHistoryRef]);
 
   // Update loop for timers and auto-reset
   useEffect(() => {
     const interval = setInterval(() => {
-      let changed = false;
-      const newAccounts = accounts.map(acc => {
-        let updatedAcc = { ...acc };
+      accounts.forEach(acc => {
+        let changed = false;
+        let updates: Partial<Account> = {};
         
-        if (updatedAcc.geminiResetDate && updatedAcc.geminiStartDate && isAvailable(updatedAcc.geminiResetDate)) {
-           updatedAcc.geminiStartDate = null;
+        if (acc.geminiResetDate && acc.geminiStartDate && isAvailable(acc.geminiResetDate)) {
+           updates.geminiStartDate = null;
            changed = true;
            notify('Gemini Available', `Gemini is now available on ${acc.email}!`);
            addHistoryEvent(acc.email, 'gemini', 'available_again');
         }
-        if (updatedAcc.claudeResetDate && updatedAcc.claudeStartDate && isAvailable(updatedAcc.claudeResetDate)) {
-           updatedAcc.claudeStartDate = null;
+        if (acc.claudeResetDate && acc.claudeStartDate && isAvailable(acc.claudeResetDate)) {
+           updates.claudeStartDate = null;
            changed = true;
            notify('Claude Available', `Claude is now available on ${acc.email}!`);
            addHistoryEvent(acc.email, 'claude', 'available_again');
         }
         
-        return updatedAcc;
+        if (changed) {
+          updateAccount(acc.id, updates);
+        }
       });
-      
-      if (changed) {
-        setAccounts(newAccounts);
-      }
     }, 5000); // Check every 5 seconds for better responsiveness
     
     return () => clearInterval(interval);
-  }, [accounts, setAccounts, notify, addHistoryEvent]);
+  }, [accounts, updateAccount, notify, addHistoryEvent]);
 
-  // Use a faster interval just for visual countdown updates without touching localStorage if no state change
+  // Use a faster interval just for visual countdown updates without touching db if no state change
   const [, setTick] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => setTick(t => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
 
-
-  const handleSaveAccount = (email: string) => {
+  const handleSaveAccount = async (email: string) => {
     if (editingAccount) {
-      setAccounts(accounts.map(a => a.id === editingAccount.id ? { ...a, email } : a));
+      await updateAccount(editingAccount.id, { email });
       setEditingAccount(null);
     } else {
-      const newAccount: Account = {
-        id: crypto.randomUUID(),
+      await addAccountRef({
         email,
         geminiResetDate: null,
         claudeResetDate: null,
-      };
-      setAccounts([...accounts, newAccount]);
+      } as any);
     }
     setIsAddOpen(false);
   };
@@ -151,7 +169,7 @@ export default function App() {
   };
 
   const handleDeleteAccount = (id: string) => {
-    setAccounts(accounts.filter(a => a.id !== id));
+    removeAccount(id);
   };
 
   const requestDeleteAccount = (id: string) => {
@@ -170,17 +188,11 @@ export default function App() {
     if (!setModalConfig.account || !setModalConfig.model) return;
     
     const startDate = new Date().toISOString();
-
-    setAccounts(accounts.map(acc => {
-      if (acc.id === setModalConfig.account!.id) {
-        return {
-          ...acc,
-          [setModalConfig.model === 'gemini' ? 'geminiResetDate' : 'claudeResetDate']: date,
-          [setModalConfig.model === 'gemini' ? 'geminiStartDate' : 'claudeStartDate']: startDate
-        };
-      }
-      return acc;
-    }));
+    
+    updateAccount(setModalConfig.account.id, {
+      [setModalConfig.model === 'gemini' ? 'geminiResetDate' : 'claudeResetDate']: date,
+      [setModalConfig.model === 'gemini' ? 'geminiStartDate' : 'claudeStartDate']: startDate
+    });
     
     addHistoryEvent(setModalConfig.account.email, setModalConfig.model, 'limit_reached');
     setSetModalConfig({ isOpen: false, account: null, model: null });
@@ -193,17 +205,10 @@ export default function App() {
     }
     
     const now = new Date().toISOString();
-    
-    setAccounts(accounts.map(acc => {
-      if (acc.id === accountId) {
-        return {
-          ...acc,
-          [model === 'gemini' ? 'geminiResetDate' : 'claudeResetDate']: now,
-          [model === 'gemini' ? 'geminiStartDate' : 'claudeStartDate']: null
-        };
-      }
-      return acc;
-    }));
+    updateAccount(accountId, {
+      [model === 'gemini' ? 'geminiResetDate' : 'claudeResetDate']: now,
+      [model === 'gemini' ? 'geminiStartDate' : 'claudeStartDate']: null
+    });
   };
 
   const requestClearLimit = (accountId: string, model: ModelType) => {
@@ -224,9 +229,17 @@ export default function App() {
       title: 'Clear History',
       message: 'Are you sure you want to clear the usage history? This action cannot be undone.',
       isDestructive: true,
-      onConfirm: () => setHistory([])
+      onConfirm: () => clearHistory()
     });
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center dark:bg-zinc-950 dark:text-white">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
@@ -241,6 +254,13 @@ export default function App() {
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => signOut(auth)}
+              className="p-1.5 ml-2 rounded-md border transition-colors flex items-center justify-center bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </h1>
           <p className="text-zinc-400 text-sm mt-1">Manage weekly limits across your Google accounts.</p>

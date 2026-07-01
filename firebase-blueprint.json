@@ -1,0 +1,29 @@
+{
+  "accounts": {
+    "__doc__": {
+      "userId": "string",
+      "email": "string",
+      "geminiResetDate": "string",
+      "claudeResetDate": "string"
+    }
+  },
+  "history": {
+    "__doc__": {
+      "userId": "string",
+      "accountId": "string",
+      "email": "string",
+      "model": "string",
+      "action": "string",
+      "timestamp": "string"
+    }
+  },
+  "wifiSubscriptions": {
+    "__doc__": {
+      "userId": "string",
+      "name": "string",
+      "durationDays": "number",
+      "startDate": "string",
+      "endDate": "string"
+    }
+  }
+}
