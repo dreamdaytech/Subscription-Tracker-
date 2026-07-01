@@ -1,0 +1,6 @@
+{
+  "name": "AI Model Quota Tracker",
+  "description": "Track Gemini and Claude weekly usage limits across multiple Google accounts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
