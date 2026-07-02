@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Account, ModelType } from '../types';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface SetResetModalProps {
   isOpen: boolean;
@@ -10,8 +12,7 @@ interface SetResetModalProps {
 }
 
 export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetResetModalProps) {
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   // Set default to existing date or 7 days from now when opened
   useEffect(() => {
@@ -24,27 +25,22 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
         d = new Date();
         d.setDate(d.getDate() + 7);
       }
-      const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      setDate(localISO.slice(0, 10));
-      setTime(localISO.slice(11, 16));
+      setSelectedDate(d);
     }
   }, [isOpen, account, model]);
 
   if (!isOpen || !account || !model) return null;
 
   const handleSave = () => {
-    if (!date || !time) return;
-    const targetDate = new Date(`${date}T${time}`);
-    onSave(targetDate.toISOString());
+    if (!selectedDate) return;
+    onSave(selectedDate.toISOString());
   };
 
   const setPreset = (days: number, hours: number) => {
     const d = new Date();
     d.setDate(d.getDate() + days);
     d.setHours(d.getHours() + hours);
-    const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    setDate(localISO.slice(0, 10));
-    setTime(localISO.slice(11, 16));
+    setSelectedDate(d);
   };
 
   return (
@@ -57,25 +53,18 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
 
         <div className="mb-6">
           <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">Exact Date & Time</label>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <input 
-                type="date" 
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
-              />
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block pl-1">dd/mm/yy</span>
-            </div>
-            <div>
-              <input 
-                type="time" 
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 [color-scheme:light] dark:[color-scheme:dark]"
-              />
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block pl-1">hh:mm</span>
-            </div>
+          <div className="w-full">
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date) => setSelectedDate(date)}
+              showTimeSelect
+              timeFormat="HH:mm"
+              timeIntervals={15}
+              timeCaption="Time"
+              dateFormat="dd/MM/yy HH:mm"
+              className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+              wrapperClassName="w-full"
+            />
           </div>
           <div className="flex flex-wrap gap-2 mt-4">
             <button onClick={() => setPreset(7, 0)} className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-xs text-zinc-600 dark:text-zinc-300 rounded-md transition-colors">1 Week</button>
@@ -94,7 +83,7 @@ export function SetResetModal({ isOpen, onClose, onSave, account, model }: SetRe
           </button>
           <button 
             onClick={handleSave}
-            disabled={!date || !time}
+            disabled={!selectedDate}
             className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
           >
             Set Timer

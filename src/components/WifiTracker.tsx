@@ -4,6 +4,8 @@ import { WifiSubscription, WifiDuration } from '../types';
 import { useFirestoreData } from '../hooks/useFirestoreData';
 import { auth } from '../firebase';
 import { formatDate } from '../utils/formatDate';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 export function WifiTracker() {
   const {
@@ -17,8 +19,7 @@ export function WifiTracker() {
   const [editingSub, setEditingSub] = useState<WifiSubscription | null>(null);
   const [newName, setNewName] = useState('');
   const [newDuration, setNewDuration] = useState<WifiDuration>(1);
-  const [newStartDate, setNewStartDate] = useState<string>('');
-  const [newStartTime, setNewStartTime] = useState<string>('');
+  const [newStartDate, setNewStartDate] = useState<Date | null>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +38,7 @@ export function WifiTracker() {
 
     setIsSubmitting(true);
     try {
-      const startDate = (newStartDate && newStartTime) ? new Date(`${newStartDate}T${newStartTime}`) : new Date();
+      const startDate = newStartDate || new Date();
       const endDate = new Date(startDate.getTime() + newDuration * 24 * 60 * 60 * 1000).toISOString();
 
       if (editingSub) {
@@ -60,8 +61,7 @@ export function WifiTracker() {
       setIsAddOpen(false);
       setNewName('');
       setNewDuration(1);
-      setNewStartDate('');
-      setNewStartTime('');
+      setNewStartDate(new Date());
     } finally {
       setIsSubmitting(false);
     }
@@ -72,20 +72,12 @@ export function WifiTracker() {
     setNewName(sub.name);
     setNewDuration(sub.durationDays);
     const d = new Date(sub.startDate);
-    // Format to YYYY-MM-DD and HH:mm
-    const tzOffset = d.getTimezoneOffset() * 60000; // offset in milliseconds
-    const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
-    setNewStartDate(localISOTime.slice(0, 10));
-    setNewStartTime(localISOTime.slice(11, 16));
+    setNewStartDate(d);
     setIsAddOpen(true);
   };
 
   const openAddForm = () => {
-    const d = new Date();
-    const tzOffset = d.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(d.getTime() - tzOffset)).toISOString().slice(0, 16);
-    setNewStartDate(localISOTime.slice(0, 10));
-    setNewStartTime(localISOTime.slice(11, 16));
+    setNewStartDate(new Date());
     setIsAddOpen(true);
   };
 
@@ -94,8 +86,7 @@ export function WifiTracker() {
     setEditingSub(null);
     setNewName('');
     setNewDuration(1);
-    setNewStartDate('');
-    setNewStartTime('');
+    setNewStartDate(new Date());
   };
 
   const confirmDelete = (id: string) => {
@@ -291,27 +282,18 @@ export function WifiTracker() {
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
                     Start Date & Time
                   </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <input
-                        type="date"
-                        required
-                        value={newStartDate}
-                        onChange={(e) => setNewStartDate(e.target.value)}
-                        className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
-                      />
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block pl-1">dd/mm/yy</span>
-                    </div>
-                    <div>
-                      <input
-                        type="time"
-                        required
-                        value={newStartTime}
-                        onChange={(e) => setNewStartTime(e.target.value)}
-                        className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-colors"
-                      />
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 block pl-1">hh:mm</span>
-                    </div>
+                  <div className="w-full">
+                    <DatePicker
+                      selected={newStartDate}
+                      onChange={(date) => setNewStartDate(date || new Date())}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={15}
+                      timeCaption="Time"
+                      dateFormat="dd/MM/yy HH:mm"
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg px-4 py-2 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-colors"
+                      wrapperClassName="w-full"
+                    />
                   </div>
                 </div>
                 
