@@ -344,11 +344,11 @@ export default function App() {
 
       {activeTab === 'dashboard' && (
         <>
-          {accounts.length > 0 && (() => {
-            const totalSlots = accounts.length * 2;
+          {(accounts || []).length > 0 && (() => {
+            const totalSlots = (accounts || []).length * 2;
             let availableGemini = 0;
             let availableClaude = 0;
-            const availableSlots = accounts.reduce((acc, account) => {
+            const availableSlots = (accounts || []).reduce((acc, account) => {
               let count = 0;
               if (isAvailable(account.geminiResetDate)) {
                 count++;

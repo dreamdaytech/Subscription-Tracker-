@@ -5,14 +5,13 @@ import { useFirestoreData } from '../hooks/useFirestoreData';
 import { auth } from '../firebase';
 import { formatDate } from '../utils/formatDate';
 
-interface WifiTrackerProps {
-  subscriptions: WifiSubscription[];
-  addSubscription: (data: Omit<WifiSubscription, 'id'>) => Promise<void>;
-  updateSubscription: (id: string, data: Partial<WifiSubscription>) => Promise<void>;
-  removeSubscription: (id: string) => Promise<void>;
-}
-
-export function WifiTracker({ subscriptions, addSubscription, updateSubscription, removeSubscription }: WifiTrackerProps) {
+export function WifiTracker() {
+  const {
+    data: subscriptions,
+    add: addSubscription,
+    update: updateSubscription,
+    remove: removeSubscription
+  } = useFirestoreData<WifiSubscription>(auth.currentUser, 'wifiSubscriptions');
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<WifiSubscription | null>(null);
@@ -129,17 +128,17 @@ export function WifiTracker({ subscriptions, addSubscription, updateSubscription
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {subscriptions.length === 0 ? (
+        {!subscriptions || subscriptions.length === 0 ? (
           <div className="col-span-full py-12 text-center text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl">
             No wifi subscriptions tracked. Add one to get started!
           </div>
         ) : (
-          subscriptions.map(sub => {
-            const status = getStatus(sub.endDate);
-            const endDate = new Date(sub.endDate);
+          (subscriptions || []).map(sub => {
+            const status = getStatus(sub?.endDate || new Date().toISOString());
+            const endDate = new Date(sub?.endDate || new Date().toISOString());
             
             return (
-              <div key={sub.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm relative overflow-hidden group">
+              <div key={sub?.id || Math.random()} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 shadow-sm relative overflow-hidden group">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="font-semibold text-zinc-900 dark:text-white truncate pr-16">{sub.name}</h3>
