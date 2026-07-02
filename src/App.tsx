@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Bell, BellOff, Settings2, Sparkles, X, Sun, Moon, LogOut } from 'lucide-react';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { Account, ModelType, SortOption, HistoryEvent } from './types';
+import { Account, ModelType, SortOption, HistoryEvent, WifiSubscription } from './types';
 import { AccountTable } from './components/AccountTable';
 import { HistoryLog } from './components/HistoryLog';
 import { WifiTracker } from './components/WifiTracker';
 import { AddAccountModal } from './components/AddAccountModal';
 import { SetResetModal } from './components/SetResetModal';
+import { Home } from './components/Home';
 import { ConfirmModal } from './components/ConfirmModal';
 import { isAvailable } from './utils/time';
 import { Login } from './components/Login';
@@ -39,9 +40,16 @@ export default function App() {
     clear: clearHistory,
   } = useFirestoreData<HistoryEvent>(user, 'history');
 
+  const {
+    data: wifiSubscriptions,
+    add: addWifiSubscription,
+    update: updateWifiSubscription,
+    remove: removeWifiSubscription,
+  } = useFirestoreData<WifiSubscription>(user, 'wifiSubscriptions');
+
   const [sortOption, setSortOption] = useState<SortOption>('next-any');
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('ai-theme', 'dark');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'wifi'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'home' | 'dashboard' | 'history' | 'wifi'>('home');
   
   useEffect(() => {
     if (theme === 'dark') {
@@ -305,6 +313,16 @@ export default function App() {
 
       <div className="flex gap-2 mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-px">
         <button
+          onClick={() => setActiveTab('home')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'home'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+          }`}
+        >
+          Home
+        </button>
+        <button
           onClick={() => setActiveTab('dashboard')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'dashboard'
@@ -312,7 +330,7 @@ export default function App() {
               : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
           }`}
         >
-          Dashboard
+          AI Accounts
         </button>
         <button
           onClick={() => setActiveTab('history')}
@@ -335,6 +353,16 @@ export default function App() {
           Wifi Subscriptions
         </button>
       </div>
+
+      {activeTab === 'home' && (
+        <Home 
+          accounts={accounts}
+          wifiSubscriptions={wifiSubscriptions}
+          history={history}
+          onNavigate={setActiveTab}
+          onAddAccount={openAddForm}
+        />
+      )}
 
       {activeTab === 'dashboard' && (
         <>
@@ -415,7 +443,12 @@ export default function App() {
       )}
 
       {activeTab === 'wifi' && (
-        <WifiTracker />
+        <WifiTracker 
+          subscriptions={wifiSubscriptions}
+          addSubscription={addWifiSubscription}
+          updateSubscription={updateWifiSubscription}
+          removeSubscription={removeWifiSubscription}
+        />
       )}
 
       <AddAccountModal 

@@ -5,13 +5,14 @@ import { useFirestoreData } from '../hooks/useFirestoreData';
 import { auth } from '../firebase';
 import { formatDate } from '../utils/formatDate';
 
-export function WifiTracker() {
-  const {
-    data: subscriptions,
-    add: addSubscription,
-    update: updateSubscription,
-    remove: removeSubscription
-  } = useFirestoreData<WifiSubscription>(auth.currentUser, 'wifiSubscriptions');
+interface WifiTrackerProps {
+  subscriptions: WifiSubscription[];
+  addSubscription: (data: Omit<WifiSubscription, 'id'>) => Promise<void>;
+  updateSubscription: (id: string, data: Partial<WifiSubscription>) => Promise<void>;
+  removeSubscription: (id: string) => Promise<void>;
+}
+
+export function WifiTracker({ subscriptions, addSubscription, updateSubscription, removeSubscription }: WifiTrackerProps) {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingSub, setEditingSub] = useState<WifiSubscription | null>(null);
