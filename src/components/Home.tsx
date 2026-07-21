@@ -76,6 +76,42 @@ export function Home({ onLoginClick }: HomeProps) {
             <p className="text-zinc-500 dark:text-zinc-400">Log in securely with your Google account. Your data is synced and backed up safely in the cloud.</p>
           </div>
         </div>
+
+        {/* How It Works Section */}
+        <div className="mt-32 mb-16 w-full text-center">
+          <h2 className="text-3xl font-bold text-zinc-900 dark:text-white mb-16">How It Works</h2>
+          <div className="flex flex-col md:flex-row gap-12 md:gap-8 relative">
+            {/* Connecting Line for Desktop */}
+            <div className="hidden md:block absolute top-8 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-800 to-transparent -z-10"></div>
+            
+            <div className="flex-1 flex flex-col items-center">
+              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center mb-6 shadow-sm relative">
+                <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm border-4 border-zinc-50 dark:border-zinc-950">1</div>
+                <ShieldCheck className="w-7 h-7 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Secure Login</h3>
+              <p className="text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">Sign in instantly using your Google account. Your data is privately synced.</p>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center">
+              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center mb-6 shadow-sm relative">
+                <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm border-4 border-zinc-50 dark:border-zinc-950">2</div>
+                <Clock className="w-7 h-7 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Track Usage</h3>
+              <p className="text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">Log when you hit limits on Claude or Gemini. Visual timers show when they reset.</p>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center">
+              <div className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center mb-6 shadow-sm relative">
+                <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm border-4 border-zinc-50 dark:border-zinc-950">3</div>
+                <Sparkles className="w-7 h-7 text-zinc-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">Stay Updated</h3>
+              <p className="text-zinc-500 dark:text-zinc-400 max-w-xs leading-relaxed">Receive browser notifications the moment your AI quotas are available again.</p>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
