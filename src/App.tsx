@@ -295,10 +295,10 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex gap-2 mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-px">
+      <div className="flex gap-2 mb-6 border-b border-zinc-200 dark:border-zinc-800 pb-2 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === 'dashboard'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -308,7 +308,7 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === 'history'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -318,7 +318,7 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('wifi')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === 'wifi'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
@@ -328,7 +328,7 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('subscriptions')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors shrink-0 ${
             activeTab === 'subscriptions'
               ? 'border-blue-500 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
