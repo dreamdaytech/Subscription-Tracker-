@@ -11,6 +11,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { isAvailable } from './utils/time';
 import { Login } from './components/Login';
 import { Home } from './components/Home';
+import { SubscriptionManager } from './components/SubscriptionManager';
 import { auth } from './firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { useFirestoreData } from './hooks/useFirestoreData';
@@ -42,7 +43,7 @@ export default function App() {
   } = useFirestoreData<HistoryEvent>(user, 'history');
 
   const [theme, setTheme] = useLocalStorage<'dark' | 'light'>('ai-theme', 'dark');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'wifi'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'history' | 'wifi' | 'subscriptions'>('dashboard');
   
   useEffect(() => {
     if (theme === 'dark') {
@@ -325,6 +326,16 @@ export default function App() {
         >
           Wifi Subscriptions
         </button>
+        <button
+          onClick={() => setActiveTab('subscriptions')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'subscriptions'
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+          }`}
+        >
+          General Subscriptions
+        </button>
       </div>
 
       {activeTab === 'dashboard' && (
@@ -406,6 +417,10 @@ export default function App() {
 
       {activeTab === 'wifi' && (
         <WifiTracker />
+      )}
+
+      {activeTab === 'subscriptions' && (
+        <SubscriptionManager />
       )}
 
       <AddAccountModal 
