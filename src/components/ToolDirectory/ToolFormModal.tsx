@@ -7,22 +7,14 @@ interface ToolFormModalProps {
   onClose: () => void;
   onSave: (tool: Partial<ResourceTool>) => Promise<void>;
   initialData?: ResourceTool | null;
+  categories: string[];
 }
 
-const CATEGORIES = [
-  'AI Tool',
-  'Development',
-  'Design',
-  'Productivity',
-  'Marketing',
-  'General Website'
-];
-
-export function ToolFormModal({ isOpen, onClose, onSave, initialData }: ToolFormModalProps) {
+export function ToolFormModal({ isOpen, onClose, onSave, initialData, categories }: ToolFormModalProps) {
   const [formData, setFormData] = useState<Partial<ResourceTool>>({
     name: '',
     url: '',
-    category: 'AI Tool',
+    category: '',
     description: '',
     details: '',
     pricingModel: '',
@@ -41,7 +33,7 @@ export function ToolFormModal({ isOpen, onClose, onSave, initialData }: ToolForm
         setFormData({
           name: '',
           url: '',
-          category: 'AI Tool',
+          category: categories.length > 0 ? categories[0] : 'Uncategorized',
           description: '',
           details: '',
           pricingModel: '',
@@ -51,7 +43,7 @@ export function ToolFormModal({ isOpen, onClose, onSave, initialData }: ToolForm
         setTagsInput('');
       }
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, initialData, categories]);
 
   if (!isOpen) return null;
 
@@ -123,11 +115,11 @@ export function ToolFormModal({ isOpen, onClose, onSave, initialData }: ToolForm
               </label>
               <select
                 required
-                value={formData.category || 'AI Tool'}
+                value={formData.category || (categories.length > 0 ? categories[0] : 'Uncategorized')}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-zinc-900 dark:text-zinc-100"
               >
-                {CATEGORIES.map(cat => (
+                {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>

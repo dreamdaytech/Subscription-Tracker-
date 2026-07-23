@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Folder } from 'lucide-react';
+import { Plus, Search, Folder, Settings2 } from 'lucide-react';
 import { useFirestoreData } from '../../hooks/useFirestoreData';
-import { ResourceTool } from '../../types';
+import { ResourceTool, ToolCategory } from '../../types';
 import { auth } from '../../firebase';
 import { ToolCard } from './ToolCard';
 import { ToolFormModal } from './ToolFormModal';
 import { ConfirmModal } from '../ConfirmModal';
+import { CategoryManagerModal } from './CategoryManagerModal';
 
 export function ToolDirectory() {
   const {
@@ -15,21 +16,40 @@ export function ToolDirectory() {
     remove: removeTool,
   } = useFirestoreData<ResourceTool>(auth.currentUser, 'tools');
 
+  const {
+    data: customCategories,
+    add: addCategory,
+    update: updateCategory,
+    remove: removeCategory,
+  } = useFirestoreData<ToolCategory>(auth.currentUser, 'toolCategories');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [editingTool, setEditingTool] = useState<ResourceTool | null>(null);
   
-  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; id: string }>({ 
+  const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; id: string; type?: 'tool' | 'category' }>({ 
     isOpen: false, 
-    id: '' 
+    id: '',
+    type: 'tool'
   });
 
-  const categories = useMemo(() => {
-    const cats = new Set(tools.map(t => t.category));
+  const categoriesForFilter = useMemo(() => {
+    const cats = new Set<string>();
+    tools.forEach(t => cats.add(t.category));
+    customCategories.forEach(c => cats.add(c.name));
     return ['All', ...Array.from(cats).sort()];
-  }, [tools]);
+  }, [tools, customCategories]);
+
+  const categoriesForForm = useMemo(() => {
+    const cats = new Set<string>();
+    tools.forEach(t => cats.add(t.category));
+    customCategories.forEach(c => cats.add(c.name));
+    if (cats.size === 0) cats.add('Uncategorized');
+    return Array.from(cats).sort();
+  }, [tools, customCategories]);
 
   const filteredTools = useMemo(() => {
     return tools.filter(tool => {
@@ -67,9 +87,13 @@ export function ToolDirectory() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    removeTool(id);
-    setConfirmDelete({ isOpen: false, id: '' });
+  const handleDelete = (id: string, type: 'tool' | 'category' = 'tool') => {
+    if (type === 'tool') {
+      removeTool(id);
+    } else {
+      removeCategory(id);
+    }
+    setConfirmDelete({ isOpen: false, id: '', type: 'tool' });
   };
 
   return (
@@ -85,13 +109,22 @@ export function ToolDirectory() {
           </p>
         </div>
         
-        <button 
-          onClick={openAddForm}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          Add Resource
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCategoryManagerOpen(true)}
+            className="p-2.5 rounded-lg border transition-colors flex items-center justify-center bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            title="Manage Categories"
+          >
+            <Settings2 className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={openAddForm}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add Resource</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -107,7 +140,7 @@ export function ToolDirectory() {
         </div>
         
         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {categories.map(category => (
+          {categoriesForFilter.map(category => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
@@ -162,15 +195,31 @@ export function ToolDirectory() {
         }}
         onSave={handleSaveTool}
         initialData={editingTool}
+        categories={categoriesForForm}
+      />
+
+      <CategoryManagerModal
+        isOpen={isCategoryManagerOpen}
+        onClose={() => setIsCategoryManagerOpen(false)}
+        categories={customCategories}
+        onAddCategory={async (name) => { await addCategory({ name } as any); }}
+        onUpdateCategory={async (id, name) => { await updateCategory(id, { name }); }}
+        onDeleteCategory={(id) => {
+          setConfirmDelete({ isOpen: true, id, type: 'category' });
+        }}
       />
 
       <ConfirmModal
         isOpen={confirmDelete.isOpen}
-        title="Delete Resource"
-        message="Are you sure you want to remove this resource? This action cannot be undone."
+        title={confirmDelete.type === 'tool' ? "Delete Resource" : "Delete Category"}
+        message={
+          confirmDelete.type === 'tool'
+            ? "Are you sure you want to remove this resource? This action cannot be undone."
+            : "Are you sure you want to remove this category? Resources currently using this category will not be modified."
+        }
         isDestructive={true}
-        onConfirm={() => handleDelete(confirmDelete.id)}
-        onClose={() => setConfirmDelete({ isOpen: false, id: '' })}
+        onConfirm={() => handleDelete(confirmDelete.id, confirmDelete.type)}
+        onClose={() => setConfirmDelete({ isOpen: false, id: '', type: 'tool' })}
       />
     </div>
   );

@@ -41,3 +41,8 @@ export interface ResourceTool {
   tags?: string[];
   createdAt?: string;
 }
+
+export interface ToolCategory {
+  id: string;
+  name: string;
+}
