@@ -140,7 +140,7 @@ export function CategoryManagerModal({
                       <span className="font-medium text-zinc-700 dark:text-zinc-200 text-sm truncate pl-1">
                         {category.name}
                       </span>
-                      <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => startEdit(category)}
                           className="p-1.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"

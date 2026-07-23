@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, Folder, Settings2 } from 'lucide-react';
+import { Plus, Search, Folder, Settings2, Filter } from 'lucide-react';
 import { useFirestoreData } from '../../hooks/useFirestoreData';
 import { ResourceTool, ToolCategory } from '../../types';
 import { auth } from '../../firebase';
@@ -25,6 +25,10 @@ export function ToolDirectory() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedPricing, setSelectedPricing] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'newest' | 'oldest'>('name-asc');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
@@ -51,18 +55,49 @@ export function ToolDirectory() {
     return Array.from(cats).sort();
   }, [tools, customCategories]);
 
+  const availableTags = useMemo(() => {
+    const tags = new Set<string>();
+    tools.forEach(t => {
+      if (t.tags) t.tags.forEach(tag => tags.add(tag));
+    });
+    return Array.from(tags).sort();
+  }, [tools]);
+
+  const availablePricing = useMemo(() => {
+    const models = new Set<string>();
+    tools.forEach(t => {
+      if (t.pricingModel) models.add(t.pricingModel);
+    });
+    return ['All', ...Array.from(models).sort()];
+  }, [tools]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
   const filteredTools = useMemo(() => {
     return tools.filter(tool => {
       const matchesSearch = 
         tool.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (tool.tags && tool.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
+        (tool.tags && tool.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+        (tool.details && tool.details.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesCategory = selectedCategory === 'All' || tool.category === selectedCategory;
+      const matchesTags = selectedTags.length === 0 || (tool.tags && selectedTags.some(tag => tool.tags!.includes(tag)));
+      const matchesPricing = selectedPricing === 'All' || tool.pricingModel === selectedPricing;
       
-      return matchesSearch && matchesCategory;
-    }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [tools, searchQuery, selectedCategory]);
+      return matchesSearch && matchesCategory && matchesTags && matchesPricing;
+    }).sort((a, b) => {
+      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+      if (sortBy === 'newest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      if (sortBy === 'oldest') return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      return 0;
+    });
+  }, [tools, searchQuery, selectedCategory, selectedTags, selectedPricing, sortBy]);
 
   const handleSaveTool = async (toolData: Partial<ResourceTool>) => {
     if (editingTool) {
@@ -127,19 +162,86 @@ export function ToolDirectory() {
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="relative flex-1">
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input 
             type="text"
-            placeholder="Search resources, descriptions, or tags..."
+            placeholder="Search resources, descriptions, details, or tags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 transition-shadow"
           />
         </div>
         
-        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex items-center gap-2 shrink-0">
+          <button 
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border transition-colors ${showAdvanced ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/10 dark:border-blue-500/30 dark:text-blue-400' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+          >
+            <Filter className="w-4 h-4" />
+            <span className="text-sm font-medium hidden sm:inline">Filters & Sort</span>
+          </button>
+        </div>
+      </div>
+
+      {showAdvanced && (
+        <div className="mb-6 p-5 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-800 animate-slide-in">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="md:col-span-1">
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Sort By</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900 dark:text-zinc-100"
+              >
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Pricing Model</label>
+              <select
+                value={selectedPricing}
+                onChange={(e) => setSelectedPricing(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-900 dark:text-zinc-100"
+              >
+                {availablePricing.map(price => (
+                  <option key={price} value={price}>{price}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="sm:col-span-2 md:col-span-2">
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wider">Filter by Tags</label>
+              <div className="flex flex-wrap gap-2">
+                {availableTags.length === 0 ? (
+                  <span className="text-sm text-zinc-500 dark:text-zinc-500 italic mt-1">No tags available.</span>
+                ) : (
+                  availableTags.map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition-colors border ${
+                        selectedTags.includes(tag)
+                          ? 'bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-400'
+                          : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      #{tag}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {categoriesForFilter.map(category => (
             <button
               key={category}
@@ -154,7 +256,6 @@ export function ToolDirectory() {
             </button>
           ))}
         </div>
-      </div>
 
       {filteredTools.length === 0 ? (
         <div className="text-center py-16 px-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700">
